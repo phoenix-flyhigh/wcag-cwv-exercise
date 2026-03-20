@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>ShopNow - Best Deals Online</title>
+  <!-- BUG: No lang attribute on <html> — WCAG 3.1.1 -->
+  <!-- BUG: No meta viewport (intentionally omitted in some places — can affect mobile a11y) -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- CWV BUG: Render-blocking font loaded synchronously, no preconnect -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lobster&family=Abril+Fatface&display=swap">
+
+  <!-- CWV BUG: Render-blocking CSS inline that causes layout shift -->
+  <style>
+    /* RESET */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Lobster', cursive;
+      background: #fff;
+      color: #555; /* BUG: Low contrast on white — WCAG 1.4.3 fails AA */
+    }
+
+    /* ===== NAVBAR ===== */
+    .navbar {
+      background: #e8e8e8; /* BUG: Low contrast nav text below */
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      /* CWV BUG: No height set — causes CLS when logo loads */
+    }
+
+    .nav-logo {
+      font-family: 'Abril Fatface', cursive;
+      font-size: 28px;
+      color: #bbb; /* BUG: Very low contrast logo text — WCAG 1.4.3 */
+      /* BUG: Not a link, not focusable, no role */
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 16px;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: #aaa; /* BUG: Fails contrast on #e8e8e8 bg */
+      text-decoration: none;
+      font-size: 14px;
+      /* BUG: No :focus styles anywhere — WCAG 2.4.7 */
+    }
+
+    .nav-links a:hover { color: #888; }
+
+    /* BUG: Focus outlines stripped globally — WCAG 2.4.7 */
+    *:focus { outline: none; }
+
+    /* ===== HERO ===== */
+    .hero {
+      position: relative;
+      /* CWV BUG: No explicit height — image will cause CLS */
+      background: #f5c518;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      padding: 40px;
+    }
+
+    .hero-image {
+      /* CWV BUG: No width/height attributes on <img> — causes CLS */
+      width: 100%;
+      /* BUG: No alt text on hero image — WCAG 1.1.1 */
+    }
+
+    .hero-text {
+      position: absolute;
+      left: 40px;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+
+    .hero-text h1 {
+      font-size: 52px;
+      color: #f5c518; /* BUG: Yellow on yellow — catastrophic contrast failure */
+      /* WCAG 1.4.3 — ratio is 1:1 */
+    }
+
+    .hero-text p {
+      color: #999;
+      font-size: 16px;
+      margin-top: 8px;
+    }
+
+    .hero-cta {
+      margin-top: 16px;
+      padding: 12px 32px;
+      background: #e8e8e8;
+      color: #ccc; /* BUG: Very low contrast button — WCAG 1.4.3 */
+      border: none;
+      border-radius: 4px;
+      font-size: 18px;
+      cursor: pointer;
+      /* BUG: Not keyboard accessible (will check tab order below) */
+    }
+
+    /* ===== FLASH BANNER ===== */
+    .flash-banner {
+      background: #ff3b30;
+      color: #ff6b63; /* BUG: Red on red — WCAG 1.4.3 */
+      text-align: center;
+      padding: 10px;
+      font-size: 13px;
+      /* CWV BUG: Injected dynamically, causes CLS */
+    }
+
+    /* ===== MARQUEE / TICKER (deprecated, causes reflow) ===== */
+    .ticker {
+      background: #222;
+      color: #444; /* BUG: Very low contrast on dark bg */
+      padding: 8px 0;
+      white-space: nowrap;
+      overflow: hidden;
+      font-size: 12px;
+    }
+
+    /* ===== PRODUCT GRID ===== */
+    .section-title {
+      text-align: center;
+      font-size: 32px;
+      color: #ccc; /* BUG: Low contrast — WCAG 1.4.3 */
+      margin: 32px 0 16px;
+    }
+
+    .products {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      padding: 0 24px 32px;
+    }
+
+    .product-card {
+      border: 1px solid #eee;
+      border-radius: 8px;
+      overflow: hidden;
+      cursor: pointer;
+      /* BUG: Clickable card, no role="button" or tabindex — keyboard inaccessible WCAG 2.1.1 */
+    }
+
+    .product-card img {
+      width: 100%;
+      display: block;
+      /* CWV BUG: No width/height — causes CLS */
+      /* BUG: Alt text missing or meaningless — checked in HTML */
+    }
+
+    .product-info {
+      padding: 12px;
+    }
+
+    .product-name {
+      font-size: 14px;
+      color: #bbb; /* BUG: Low contrast product name — WCAG 1.4.3 */
+      /* BUG: Using div, not semantic heading — WCAG 1.3.1 */
+    }
+
+    .product-price {
+      font-size: 18px;
+      color: #ccc; /* BUG: Low contrast price */
+      margin-top: 4px;
+    }
+
+    .product-badge {
+      display: inline-block;
+      background: #ff3b30;
+      color: #ff8f8a; /* BUG: Low contrast on red */
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 2px;
+      margin-top: 4px;
+    }
+
+    .add-to-cart {
+      width: 100%;
+      padding: 8px;
+      margin-top: 8px;
+      background: #007aff;
+      color: #5da8ff; /* BUG: Blue on blue — WCAG 1.4.3 */
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      /* BUG: No focus visible state */
+    }
+
+    /* ===== MODAL ===== */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-overlay.open {
+      display: flex;
+    }
+
+    .modal {
+      background: white;
+      padding: 32px;
+      border-radius: 12px;
+      width: 480px;
+      max-width: 90vw;
+      position: relative;
+      /* BUG: No role="dialog", no aria-modal, no aria-labelledby — WCAG 4.1.2 */
+      /* BUG: Focus not trapped inside modal — WCAG 2.1.2 */
+      /* BUG: Escape key not handled */
+    }
+
+    .modal h2 {
+      font-size: 22px;
+      color: #ccc; /* Low contrast */
+      margin-bottom: 16px;
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: none;
+      border: none;
+      font-size: 20px;
+      cursor: pointer;
+      color: #ddd; /* BUG: Very low contrast × button */
+      /* BUG: No aria-label — WCAG 4.1.2 */
+    }
+
+    /* ===== FORM ===== */
+    .form-section {
+      max-width: 480px;
+      margin: 0 auto 48px;
+      padding: 0 24px;
+    }
+
+    .form-section h2 {
+      font-size: 24px;
+      color: #ccc; /* BUG: Low contrast — WCAG 1.4.3 */
+      margin-bottom: 16px;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #eee;
+      border-radius: 4px;
+      font-size: 14px;
+      color: #999; /* BUG: Low contrast input text — WCAG 1.4.3 */
+      /* BUG: No associated <label> — WCAG 1.3.1, 3.3.2 */
+    }
+
+    .form-group input::placeholder {
+      color: #ddd; /* BUG: Placeholder-only labels + very low contrast — WCAG 1.4.3, 3.3.2 */
+    }
+
+    .error-msg {
+      color: #ff9a9a; /* BUG: Low contrast error — WCAG 1.4.3 */
+      font-size: 12px;
+      margin-top: 4px;
+      /* BUG: Not announced to screen readers — no aria-live */
+    }
+
+    .submit-btn {
+      width: 100%;
+      padding: 12px;
+      background: #34c759;
+      color: #7fd99a; /* BUG: Green on green — contrast fail */
+      border: none;
+      border-radius: 4px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    /* ===== IMAGE CAROUSEL ===== */
+    .carousel {
+      overflow: hidden;
+      position: relative;
+      margin-bottom: 32px;
+      /* CWV BUG: No explicit height — causes CLS on load */
+    }
+
+    .carousel-track {
+      display: flex;
+      /* CWV BUG: Layout shift as images load without dimensions */
+    }
+
+    .carousel-track img {
+      flex-shrink: 0;
+      width: 100%;
+      /* BUG: No alt text */
+    }
+
+    /* ===== ICON-ONLY BUTTONS ===== */
+    .icon-actions {
+      display: flex;
+      gap: 12px;
+      padding: 16px 24px;
+      justify-content: flex-end;
+    }
+
+    .icon-btn {
+      background: none;
+      border: 1px solid #eee;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      cursor: pointer;
+      font-size: 18px;
+      /* BUG: No aria-label on icon buttons — WCAG 4.1.2 */
+    }
+
+    /* ===== COLOR-ONLY STATUS ===== */
+    .status-list {
+      padding: 0 24px 32px;
+    }
+
+    .status-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 0;
+      border-bottom: 1px solid #f5f5f5;
+      font-size: 14px;
+      color: #bbb;
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      /* BUG: Status conveyed ONLY by color — WCAG 1.4.1 */
+    }
+
+    .status-dot.green { background: #34c759; }
+    .status-dot.red { background: #ff3b30; }
+    .status-dot.yellow { background: #f5c518; }
+
+    /* ===== FOOTER ===== */
+    footer {
+      background: #1a1a1a;
+      padding: 32px 24px;
+      /* BUG: No landmark role for footer nav links */
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 16px;
+      list-style: none;
+      flex-wrap: wrap;
+    }
+
+    .footer-links a {
+      color: #444; /* BUG: Very low contrast on dark bg — WCAG 1.4.3 */
+      font-size: 12px;
+      text-decoration: none;
+    }
+
+    .footer-copy {
+      margin-top: 16px;
+      color: #333; /* BUG: Low contrast */
+      font-size: 11px;
+    }
+
+    /* ===== TOOLTIP ===== */
+    .tooltip-wrap {
+      position: relative;
+      display: inline-block;
+    }
+
+    .tooltip-content {
+      display: none;
+      position: absolute;
+      bottom: 100%;
+      left: 0;
+      background: #333;
+      color: #555; /* BUG: Low contrast tooltip */
+      padding: 6px 10px;
+      border-radius: 4px;
+      font-size: 11px;
+      white-space: nowrap;
+      /* BUG: Not accessible via keyboard — WCAG 2.1.1 */
+      /* BUG: No role="tooltip" — WCAG 4.1.2 */
+    }
+
+    .tooltip-wrap:hover .tooltip-content {
+      display: block;
+      /* BUG: Only on hover, not focus */
+    }
+
+    /* ===== SKIP LINK (intentionally broken) ===== */
+    /* BUG: No skip link at all — WCAG 2.4.1 */
+
+    /* ===== ANIMATION causing CLS ===== */
+    @keyframes popIn {
+      from { height: 0; opacity: 0; }
+      to { height: 48px; opacity: 1; }
+    }
+
+    .announcement {
+      animation: popIn 0.4s ease forwards;
+      background: #007aff;
+      color: #fff;
+      text-align: center;
+      padding: 12px;
+      font-size: 14px;
+      overflow: hidden;
+      /* CWV BUG: Height animation causes massive CLS */
+    }
+
+    /* ===== READING LINE LENGTH ===== */
+    .article-body {
+      max-width: 1200px; /* BUG: Lines too long — poor readability, indirectly WCAG 1.4.8 */
+      padding: 24px;
+      color: #bbb;
+      font-size: 13px;
+      line-height: 1.2; /* BUG: Too tight line height — WCAG 1.4.12 */
+      letter-spacing: -0.5px; /* BUG: Negative letter spacing — WCAG 1.4.12 */
+    }
+
+    /* Tabindex issues handled in HTML */
+
+    .visually-hidden-wrong {
+      display: none; /* BUG: Using display:none instead of proper visually-hidden — hides from AT */
+    }
+
+  </style>
+</head>
+<body>
+  <!-- BUG: No skip navigation link — WCAG 2.4.1 -->
+
+  <!-- BUG: Dynamic banner injected late — causes CLS -->
+  <div class="announcement" id="announcement">
+    🎉 Summer Sale is LIVE — Up to 70% off everything!
+  </div>
+
+  <!-- BUG: No <header> landmark — WCAG 1.3.6 / 4.1.2 -->
+  <div class="navbar">
+    <!-- BUG: Logo is just text div, not a link, not navigable -->
+    <div class="nav-logo">ShopNow</div>
+
+    <!-- BUG: nav without aria-label -->
+    <ul class="nav-links">
+      <!-- BUG: Positive tabindex disrupts natural tab order — WCAG 2.4.3 -->
+      <li><a href="#" tabindex="4">Sale</a></li>
+      <li><a href="#" tabindex="2">Men</a></li>
+      <li><a href="#" tabindex="1">Women</a></li>
+      <li><a href="#" tabindex="3">Kids</a></li>
+      <li><a href="#" tabindex="5">Contact</a></li>
+    </ul>
+
+    <div class="icon-actions">
+      <!-- BUG: Icon buttons with no accessible name — WCAG 4.1.2 -->
+      <button class="icon-btn">🔍</button>
+      <button class="icon-btn">🛒</button>
+      <button class="icon-btn">♥</button>
+    </div>
+  </div>
+
+  <!-- BUG: <main> missing entirely — no main landmark — WCAG 1.3.6 -->
+
+  <!-- HERO SECTION -->
+  <div class="hero">
+    <!-- CWV BUG: img has no width/height — causes CLS -->
+    <!-- BUG: Decorative but meaningful image has empty alt — WCAG 1.1.1 -->
+    <!-- BUG: Loading a large image from picsum without sizing — affects LCP -->
+    <img 
+      src="https://picsum.photos/1400/500?grayscale" 
+      class="hero-image"
+      alt=""
+    >
+    <div class="hero-text">
+      <!-- BUG: h1 is yellow text on yellow background -->
+      <h1>Big Summer Sale</h1>
+      <p>Discounts up to 70% — today only</p>
+      <!-- BUG: button type not specified, low contrast, no focus state -->
+      <button class="hero-cta">Shop Now</button>
+    </div>
+  </div>
+
+  <!-- FLASH BANNER: injected via JS to cause CLS -->
+  <div class="flash-banner" id="flash-banner"></div>
+
+  <!-- BUG: deprecated <marquee> element — not accessible, not ARIA-live -->
+  <div class="ticker">
+    <marquee>FREE SHIPPING on orders over ₹999 &nbsp;|&nbsp; NEW ARRIVALS every Monday &nbsp;|&nbsp; 10% off with code SAVE10</marquee>
+  </div>
+
+  <!-- PRODUCT SECTION -->
+  <!-- BUG: No <section> with aria-labelledby, just a <div> -->
+  <div>
+    <!-- BUG: Skips heading levels — goes from h1 to h4 — WCAG 1.3.1 -->
+    <h4 class="section-title">Featured Products</h4>
+
+    <div class="products" id="products-grid">
+      <!-- Products injected by JS — no loading state, causes CLS -->
+    </div>
+  </div>
+
+  <!-- STATUS LIST: color-only information -->
+  <div class="status-list">
+    <h4 class="section-title">Order Status</h4>
+
+    <div class="status-item">
+      <!-- BUG: Status conveyed ONLY through color — WCAG 1.4.1 -->
+      <span class="status-dot green"></span>
+      <span>Order #1042 — Chennai</span>
+    </div>
+    <div class="status-item">
+      <span class="status-dot yellow"></span>
+      <span>Order #1041 — Mumbai</span>
+    </div>
+    <div class="status-item">
+      <span class="status-dot red"></span>
+      <span>Order #1039 — Delhi</span>
+    </div>
+
+    <!-- BUG: Info conveyed only by color — what do the dots MEAN? -->
+  </div>
+
+  <!-- IMAGE CAROUSEL: CLS culprit -->
+  <div class="carousel">
+    <!-- CWV BUG: No aspect-ratio or explicit height set — massive CLS when images load -->
+    <div class="carousel-track" id="carousel-track">
+      <img src="https://picsum.photos/1200/300?random=1" alt="">
+      <img src="https://picsum.photos/1200/300?random=2" alt="">
+      <!-- BUG: All carousel images missing alt text — WCAG 1.1.1 -->
+    </div>
+  </div>
+
+  <!-- TOOLTIP EXAMPLE -->
+  <div style="padding: 16px 24px;">
+    <span class="tooltip-wrap">
+      <!-- BUG: Tooltip only shows on hover, not on keyboard focus — WCAG 2.1.1 -->
+      <!-- BUG: No role="tooltip" + aria-describedby — WCAG 4.1.2 -->
+      <button class="icon-btn">ℹ️</button>
+      <span class="tooltip-content">This item ships in 2-3 business days</span>
+    </span>
+  </div>
+
+  <!-- FORM SECTION -->
+  <div class="form-section">
+    <!-- BUG: Using h4 again instead of continuing logical heading hierarchy -->
+    <h4 class="form-section h2" style="font-size:24px;color:#ccc;margin-bottom:16px;">Subscribe for Deals</h4>
+
+    <!-- BUG: No <form> element, just divs — WCAG 1.3.1 -->
+    <!-- BUG: No aria-required, no autocomplete attributes — WCAG 1.3.5 -->
+    <div class="form-group">
+      <!-- BUG: No <label> element — placeholder is the only label — WCAG 1.3.1, 3.3.2 -->
+      <input type="text" placeholder="Full Name" id="name-input">
+      <div class="error-msg" id="name-error"></div>
+      <!-- BUG: Error not linked to input via aria-describedby -->
+    </div>
+
+    <div class="form-group">
+      <!-- BUG: Email input type="text" not "email" — misses browser validation hints -->
+      <input type="text" placeholder="Email Address" id="email-input">
+      <div class="error-msg" id="email-error"></div>
+    </div>
+
+    <div class="form-group">
+      <!-- BUG: Select with no accessible name / label -->
+      <select id="category-select">
+        <!-- BUG: First option is empty — not properly handled -->
+        <option value="">Choose category...</option>
+        <option value="men">Men</option>
+        <option value="women">Women</option>
+        <option value="kids">Kids</option>
+      </select>
+    </div>
+
+    <!-- BUG: Custom checkbox — not keyboard accessible, no role="checkbox" -->
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;cursor:pointer;" id="terms-check" onclick="this.dataset.checked = this.dataset.checked === 'true' ? 'false' : 'true'">
+      <div style="width:16px;height:16px;border:1px solid #ddd;border-radius:2px;background:#fff;" id="checkbox-visual"></div>
+      <span style="font-size:13px;color:#ccc;">I agree to Terms &amp; Conditions</span>
+      <!-- BUG: Linked text "Terms & Conditions" is just text, not a link — and if it were, it'd be non-descriptive -->
+    </div>
+
+    <!-- BUG: button type not submit, low contrast, no aria -->
+    <button class="submit-btn" onclick="validateForm()">Subscribe</button>
+  </div>
+
+  <!-- ARTICLE SECTION: typography a11y issues -->
+  <div class="article-body">
+    <!-- BUG: Line too long, letter-spacing negative, line-height too tight — WCAG 1.4.12 -->
+    <p>
+      Welcome to ShopNow, India's fastest growing online fashion destination. We bring you the best deals from top brands every single day. Our curated collections span men's wear, women's fashion, kids' clothing, accessories, footwear, and much more. With over 10,000 products added every week, you'll never run out of options. Shop with confidence with our 30-day return policy. Delivery available across India in 2-5 business days. Premium members get free delivery on every order. Sign up today and get flat 10% off your first purchase. Use code WELCOME10 at checkout.
+    </p>
+  </div>
+
+  <!-- MODAL -->
+  <!-- BUG: No role="dialog", no aria-modal, no aria-labelledby -->
+  <!-- BUG: focus not managed when modal opens -->
+  <div class="modal-overlay" id="modal">
+    <div class="modal">
+      <!-- BUG: No aria-label on close button -->
+      <button class="modal-close" onclick="closeModal()">×</button>
+      <h2>Quick View</h2>
+      <div id="modal-content">
+        <p style="color:#bbb;font-size:14px;">Product details load here.</p>
+        <!-- BUG: When modal opens, screen reader is not informed, focus not moved here -->
+      </div>
+      <button class="add-to-cart" style="margin-top:16px;" onclick="closeModal()">Add to Cart</button>
+    </div>
+  </div>
+
+  <!-- BUG: No <footer> landmark -->
+  <div style="background:#1a1a1a;padding:32px 24px;">
+    <!-- BUG: No aria-label on this nav -->
+    <ul class="footer-links">
+      <!-- BUG: All footer links have the same generic text — WCAG 2.4.6 -->
+      <li><a href="#">Click here</a></li>
+      <li><a href="#">Click here</a></li>
+      <li><a href="#">Click here</a></li>
+      <li><a href="#">Click here</a></li>
+      <!-- BUG: Links open in new tab without warning -->
+      <li><a href="#" target="_blank">Privacy Policy</a></li>
+    </ul>
+    <p class="footer-copy">© 2024 ShopNow. All rights reserved.</p>
+  </div>
+
+  <!-- CWV BUG: Large JS at bottom but also synchronous -->
+  <!-- BUG: No defer/async on scripts -->
+  <script>
+    // =============================================
+    // INTENTIONAL BUGS — DO NOT FIX THESE IN HTML
+    // (they're tracked below — fix them in your fork)
+    // =============================================
+
+    const PRODUCTS = [
+      { id: 1, name: "Summer Floral Dress", price: "₹1,299", img: "https://picsum.photos/300/300?random=10", badge: "SALE" },
+      { id: 2, name: "Classic Denim Jacket", price: "₹2,499", img: "https://picsum.photos/300/300?random=11", badge: "NEW" },
+      { id: 3, name: "Kids Sneakers", price: "₹899", img: "https://picsum.photos/300/300?random=12", badge: "" },
+      { id: 4, name: "Linen Trousers", price: "₹1,799", img: "https://picsum.photos/300/300?random=13", badge: "HOT" },
+      { id: 5, name: "Cotton Kurta Set", price: "₹1,099", img: "https://picsum.photos/300/300?random=14", badge: "SALE" },
+      { id: 6, name: "Aviator Sunglasses", price: "₹599", img: "https://picsum.photos/300/300?random=15", badge: "" },
+      { id: 7, name: "Silk Saree", price: "₹4,999", img: "https://picsum.photos/300/300?random=16", badge: "PREMIUM" },
+      { id: 8, name: "Sports Shorts", price: "₹699", img: "https://picsum.photos/300/300?random=17", badge: "" },
+    ];
+
+    // CWV BUG: Products injected after page load — causes CLS (content appears, grid reflows)
+    // Also blocks main thread on load
+    setTimeout(() => {
+      const grid = document.getElementById('products-grid');
+      grid.innerHTML = PRODUCTS.map(p => `
+        <div class="product-card" onclick="openModal(${p.id})">
+          <!-- BUG: No alt text on product images — WCAG 1.1.1 -->
+          <!-- CWV BUG: No width/height attributes — causes CLS -->
+          <img src="${p.img}" alt="">
+          <div class="product-info">
+            <!-- BUG: Using div instead of semantic heading — WCAG 1.3.1 -->
+            <div class="product-name">${p.name}</div>
+            <div class="product-price">${p.price}</div>
+            ${p.badge ? `<span class="product-badge">${p.badge}</span>` : ''}
+            <!-- BUG: Button accessible name is just "Add to Cart" for every product — not unique — WCAG 2.4.6 -->
+            <button class="add-to-cart" onclick="event.stopPropagation()">Add to Cart</button>
+          </div>
+        </div>
+      `).join('');
+    }, 800); // 800ms delay simulates slow API + causes visible CLS
+
+    // CWV BUG: Flash banner injected dynamically — causes CLS
+    setTimeout(() => {
+      document.getElementById('flash-banner').textContent = '⚡ Flash Deal: Buy 2 Get 1 Free on all tops!';
+    }, 1200);
+
+    // Modal functions
+    function openModal(productId) {
+      const product = PRODUCTS.find(p => p.id === productId);
+      document.getElementById('modal-content').innerHTML = `
+        <img src="${product.img}" style="width:100%;margin-bottom:12px;" alt="">
+        <p style="font-size:16px;color:#555;">${product.name}</p>
+        <p style="font-size:22px;color:#ccc;margin-top:8px;">${product.price}</p>
+      `;
+      document.getElementById('modal').classList.add('open');
+      // BUG: focus is NOT moved to modal — WCAG 2.4.3
+      // BUG: background content is NOT inert — WCAG 2.1.2
+    }
+
+    function closeModal() {
+      document.getElementById('modal').classList.remove('open');
+      // BUG: focus is NOT returned to trigger element — WCAG 2.4.3
+    }
+
+    // BUG: Escape key handler missing for modal — WCAG 2.1.1
+
+    // Form validation — errors injected without aria-live
+    function validateForm() {
+      const name = document.getElementById('name-input').value;
+      const email = document.getElementById('email-input').value;
+
+      // BUG: Errors shown visually but NOT announced to screen readers (no aria-live) — WCAG 4.1.3
+      if (!name) {
+        document.getElementById('name-error').textContent = 'Name is required';
+        // BUG: Error not linked to input via aria-describedby
+        // BUG: Input not marked aria-invalid="true"
+      }
+      if (!email || !email.includes('@')) {
+        document.getElementById('email-error').textContent = 'Enter a valid email';
+      }
+    }
+
+    // CWV BUG: Expensive layout-triggering JS on scroll (forces layout recalc)
+    window.addEventListener('scroll', () => {
+      // Reads offsetTop which triggers layout
+      const cards = document.querySelectorAll('.product-card');
+      cards.forEach(card => {
+        const top = card.offsetTop; // FORCES LAYOUT RECALC ON EVERY SCROLL
+        if (top < window.scrollY + window.innerHeight) {
+          card.style.opacity = '1';
+        }
+      });
+    });
+
+    // CWV BUG: Font loaded via JS after page load — causes FOUT/layout shift
+    const style = document.createElement('style');
+    style.textContent = `@import url('https://fonts.googleapis.com/css2?family=Pacifico&display=swap');`;
+    document.head.appendChild(style);
+
+  </script>
+</body>
+</html>
